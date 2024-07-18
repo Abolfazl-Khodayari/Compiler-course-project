@@ -1,3 +1,4 @@
 def main()
     a = 1;
+    chop(a);
 end

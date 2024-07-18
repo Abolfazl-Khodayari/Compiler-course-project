@@ -91,6 +91,8 @@ public class TypeChecker extends Visitor<Type> {
     @Override
     public Type visit(MainDeclaration mainDeclaration){
         //TODO:visit main
+        for (var stmt: mainDeclaration.getBody())
+            stmt.accept(this);
         return null;
     }
     @Override
@@ -250,8 +252,15 @@ public class TypeChecker extends Visitor<Type> {
     }
     @Override
     public Type visit(ChopStatement chopStatement){
+        Expression arg = chopStatement.getChopExpression();
+        Type argType = arg.accept(this);
+        if (!(argType instanceof StringType)) {
+            typeErrors.add(new ChopArgumentTypeMisMatch(chopStatement.getLine()));
+            return new NoType();
+        }
         return new StringType();
     }
+
     @Override
     public Type visit(Identifier identifier){
         // TODO:visit Identifier
