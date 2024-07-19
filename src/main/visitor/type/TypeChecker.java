@@ -227,6 +227,21 @@ public class TypeChecker extends Visitor<Type> {
             typeErrors.add(new IsNotAppendable(appendExpression.getLine()));
             return new NoType();
         }
+        if(appendeeType instanceof StringType){
+            for(var exp : appendExpression.getAppendeds() )
+                if(!(exp.accept(this) instanceof StringType)){
+                    typeErrors.add(new AppendTypesMisMatch(appendExpression.getLine()));
+                    return new NoType();
+                }
+        }
+        if(appendeeType instanceof ListType){
+            var type2 = ((ListType) appendeeType).getType();
+            for(var exp : appendExpression.getAppendeds() )
+                if(!(exp.accept(this).sameType(type2))){
+                    typeErrors.add(new AppendTypesMisMatch(appendExpression.getLine()));
+                    return new NoType();
+                }
+        }
         return appendeeType;
     }
     @Override
