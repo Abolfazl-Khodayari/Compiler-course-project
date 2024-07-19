@@ -16,10 +16,12 @@ import main.symbolTable.exceptions.*;
 import main.symbolTable.item.*;
 import main.visitor.Visitor;
 
+import java.security.Key;
 import java.util.*;
 
 public class TypeChecker extends Visitor<Type> {
     public ArrayList<CompileError> typeErrors = new ArrayList<>();
+
     @Override
     public Type visit(Program program){
         SymbolTable.root = new SymbolTable();
@@ -167,9 +169,10 @@ public class TypeChecker extends Visitor<Type> {
 
             // Create a new VarItem with the variable's name and type
             VarItem newVarItem = new VarItem(assignStatement.getAssignedId());
-            // Store the variable type in the symbol table
+            newVarItem.setType(exprType);
+            SymbolTable.pop();
             try {
-                SymbolTable.top.put(newVarItem);
+                SymbolTable.root.put(newVarItem);
             } catch (ItemAlreadyExists ignored) {
                 // Handle the case where the variable already exists in the symbol table
             }
@@ -296,6 +299,18 @@ public class TypeChecker extends Visitor<Type> {
     @Override
     public Type visit(Identifier identifier){
         // TODO:visit Identifier
+
+        String varname = identifier.getName();
+        //SymbolTable.root.items.get("VAR:"+varname);
+        //SymbolTable.top(varname);
+        try {
+            SymbolTableItem newVarItem2 = SymbolTable.top.getItem("VAR:" + varname);
+        }catch (ItemNotFound ignored){};
+
+        //System.err.println("Error1132: " + newVarItem2);
+        //var vartype = SymbolTable.root.getItem(varname);
+
+
         return null;
     }
     @Override
@@ -319,6 +334,22 @@ public class TypeChecker extends Visitor<Type> {
 
         if(rangeType.equals(RangeType.LIST)){
             // TODO --> mind that the lists are declared explicitly in the grammar in this node, so handle the errors
+        }
+        if(rangeType.equals(RangeType.IDENTIFIER)){
+            for(Expression expr1: rangeExpression.getRangeExpressions()) {
+                var expr2 = expr1.accept(this);
+
+                System.err.println("Error: " + expr2.toString());
+                if(!(expr2 instanceof ListType)){
+                    //typeErrors.add(new IsNotIterable(expr1.getLine()));
+                    return new NoType();
+                }
+                if(!((expr1.accept(this)) instanceof ListType)){
+                    //typeErrors.add(new IsNotIterable(expr1.getLine()));
+                    return new NoType();
+                }
+            }
+
         }
         if(rangeType.equals(RangeType.DOUBLE_DOT)){
             // TODO --> mind that the lists are declared explicitly in the grammar in this node, so handle the errors
