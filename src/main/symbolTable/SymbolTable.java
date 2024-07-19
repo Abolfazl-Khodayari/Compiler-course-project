@@ -12,7 +12,7 @@ public class SymbolTable {
     public static SymbolTable top;
     public static SymbolTable root;
     private static Stack<SymbolTable> stack = new Stack<>();
-    private Map<String, SymbolTableItem> items;
+    public Map<String, SymbolTableItem> items;
     public static void push(SymbolTable symbolTable) {
         if (top != null)
             stack.push(top);
@@ -29,13 +29,11 @@ public class SymbolTable {
             throw new ItemAlreadyExists();
         items.put(item.getKey(), item);
     }
-    public SymbolTableItem getItem(String key) throws ItemNotFound {
+    public SymbolTableItem getItem(String key) {
         SymbolTableItem symbolTableItem = this.items.get(key);
-        if( symbolTableItem != null ){
-            return symbolTableItem;
+
+        return symbolTableItem;
         }
-        throw new ItemNotFound();
-    }
     public SymbolTable copy() {
         SymbolTable newSymbolTable = new SymbolTable();
         newSymbolTable.items.putAll(this.items);

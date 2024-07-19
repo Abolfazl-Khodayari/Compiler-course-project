@@ -1,6 +1,4 @@
 def main()
-    a = 5;
-    for i in a
-        puts(i);
-    end
+    a = "5";
+    chop(a);
 end

@@ -16,12 +16,10 @@ import main.symbolTable.exceptions.*;
 import main.symbolTable.item.*;
 import main.visitor.Visitor;
 
-import java.security.Key;
 import java.util.*;
 
 public class TypeChecker extends Visitor<Type> {
     public ArrayList<CompileError> typeErrors = new ArrayList<>();
-
     @Override
     public Type visit(Program program){
         SymbolTable.root = new SymbolTable();
@@ -45,7 +43,6 @@ public class TypeChecker extends Visitor<Type> {
     @Override
     public Type visit(FunctionDeclaration functionDeclaration){
         SymbolTable.push(new SymbolTable());
-        try {
             FunctionItem functionItem = (FunctionItem) SymbolTable.root.getItem(FunctionItem.START_KEY +
                     functionDeclaration.getFunctionName().getName());
             ArrayList<Type> currentArgTypes = functionItem.getArgumentTypes();
@@ -56,7 +53,6 @@ public class TypeChecker extends Visitor<Type> {
                     SymbolTable.top.put(argItem);
                 }catch (ItemAlreadyExists ignored){}
             }
-        }catch (ItemNotFound ignored){}
         for(Statement statement : functionDeclaration.getBody())
             statement.accept(this);
 
@@ -68,7 +64,6 @@ public class TypeChecker extends Visitor<Type> {
     @Override
     public Type visit(PatternDeclaration patternDeclaration){
         SymbolTable.push(new SymbolTable());
-        try {
             PatternItem patternItem = (PatternItem) SymbolTable.root.getItem(PatternItem.START_KEY +
                     patternDeclaration.getPatternName().getName());
             VarItem varItem = new VarItem(patternDeclaration.getTargetVariable());
@@ -83,8 +78,8 @@ public class TypeChecker extends Visitor<Type> {
                     return new NoType();
                 }
             }
-        //TODO:1-figure out whether return expression of different cases in pattern are of the same type/2-return the infered type
-        }catch (ItemNotFound ignored){}
+            //TODO:1-figure out whether return expression of different cases in pattern are of the same type/2-return the infered type
+
 
 
         SymbolTable.pop();
@@ -92,7 +87,6 @@ public class TypeChecker extends Visitor<Type> {
     }
     @Override
     public Type visit(MainDeclaration mainDeclaration){
-        //TODO:visit main
         for (var stmt: mainDeclaration.getBody())
             stmt.accept(this);
         return null;
@@ -164,18 +158,13 @@ public class TypeChecker extends Visitor<Type> {
             // TODO:assignment to list
         }
         else{
-            String varName = assignStatement.getAssignedId().getName();
-            Type exprType = assignStatement.getAssignExpression().accept(this);
-
-            // Create a new VarItem with the variable's name and type
             VarItem newVarItem = new VarItem(assignStatement.getAssignedId());
+            Type exprType = assignStatement.getAssignExpression().accept(this);
             newVarItem.setType(exprType);
-            SymbolTable.pop();
+            // TODO:maybe new type for a variable
             try {
-                SymbolTable.root.put(newVarItem);
-            } catch (ItemAlreadyExists ignored) {
-                // Handle the case where the variable already exists in the symbol table
-            }
+                SymbolTable.top.put(newVarItem);
+            }catch (ItemAlreadyExists ignored){}
         }
         return new NoType();
     }
@@ -238,21 +227,6 @@ public class TypeChecker extends Visitor<Type> {
             typeErrors.add(new IsNotAppendable(appendExpression.getLine()));
             return new NoType();
         }
-        if(appendeeType instanceof StringType){
-            for(var exp : appendExpression.getAppendeds() )
-                if(!(exp.accept(this) instanceof StringType)){
-                    typeErrors.add(new AppendTypesMisMatch(appendExpression.getLine()));
-                    return new NoType();
-                }
-        }
-        if(appendeeType instanceof ListType){
-            var type2 = ((ListType) appendeeType).getType();
-            for(var exp : appendExpression.getAppendeds() )
-                if(!(exp.accept(this).sameType(type2))){
-                    typeErrors.add(new AppendTypesMisMatch(appendExpression.getLine()));
-                    return new NoType();
-                }
-        }
         return appendeeType;
     }
     @Override
@@ -277,41 +251,19 @@ public class TypeChecker extends Visitor<Type> {
     @Override
     public Type visit(ChopStatement chopStatement){
         Expression arg = chopStatement.getChopExpression();
-        Type argType;
-
-        if (arg instanceof Identifier) {
-            // If the argument is a variable, get its type from the symbol table
-            String varName = ((Identifier) arg).getName();
-            //argType = getVariableType(varName);
-        } else {
-            // Otherwise, type check the expression directly
-            argType = arg.accept(this);
+        Type argType = arg.accept(this);
+        if (!(argType instanceof StringType)) {
+            typeErrors.add(new ChopArgumentTypeMisMatch(chopStatement.getLine()));
+            return new NoType();
         }
-
-
-        //if (!(argType instanceof StringType)) {
-        //    typeErrors.add(new ChopArgumentTypeMisMatch(chopStatement.getLine()));
-        //    return new NoType();
-        //}
         return new StringType();
     }
-
     @Override
     public Type visit(Identifier identifier){
         // TODO:visit Identifier
-
-        String varname = identifier.getName();
-        //SymbolTable.root.items.get("VAR:"+varname);
-        //SymbolTable.top(varname);
-        try {
-            SymbolTableItem newVarItem2 = SymbolTable.top.getItem("VAR:" + varname);
-        }catch (ItemNotFound ignored){};
-
-        //System.err.println("Error1132: " + newVarItem2);
-        //var vartype = SymbolTable.root.getItem(varname);
-
-
-        return null;
+        String varName = identifier.getName();
+        VarItem newVarItem2 = (VarItem) SymbolTable.top.getItem("VAR:" + varName);
+        return newVarItem2.getType();
     }
     @Override
     public Type visit(LenStatement lenStatement){
@@ -320,13 +272,10 @@ public class TypeChecker extends Visitor<Type> {
     }
     @Override
     public Type visit(MatchPatternStatement matchPatternStatement){
-        try{
             PatternItem patternItem = (PatternItem)SymbolTable.root.getItem(PatternItem.START_KEY +
                     matchPatternStatement.getPatternId().getName());
             patternItem.setTargetVarType(matchPatternStatement.getMatchArgument().accept(this));
             return patternItem.getPatternDeclaration().accept(this);
-        }catch (ItemNotFound ignored){}
-        return new NoType();
     }
     @Override
     public Type visit(RangeExpression rangeExpression){
@@ -335,25 +284,7 @@ public class TypeChecker extends Visitor<Type> {
         if(rangeType.equals(RangeType.LIST)){
             // TODO --> mind that the lists are declared explicitly in the grammar in this node, so handle the errors
         }
-        if(rangeType.equals(RangeType.IDENTIFIER)){
-            for(Expression expr1: rangeExpression.getRangeExpressions()) {
-                var expr2 = expr1.accept(this);
 
-                System.err.println("Error: " + expr2.toString());
-                if(!(expr2 instanceof ListType)){
-                    //typeErrors.add(new IsNotIterable(expr1.getLine()));
-                    return new NoType();
-                }
-                if(!((expr1.accept(this)) instanceof ListType)){
-                    //typeErrors.add(new IsNotIterable(expr1.getLine()));
-                    return new NoType();
-                }
-            }
-
-        }
-        if(rangeType.equals(RangeType.DOUBLE_DOT)){
-            // TODO --> mind that the lists are declared explicitly in the grammar in this node, so handle the errors
-        }
         return new NoType();
     }
 }
