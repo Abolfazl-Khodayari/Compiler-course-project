@@ -1,4 +1,4 @@
 def main()
-    a = 1;
-    chop(a);
+    a = "1";
+    chop(25);
 end

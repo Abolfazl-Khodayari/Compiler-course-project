@@ -162,11 +162,17 @@ public class TypeChecker extends Visitor<Type> {
             // TODO:assignment to list
         }
         else{
+            String varName = assignStatement.getAssignedId().getName();
+            Type exprType = assignStatement.getAssignExpression().accept(this);
+
+            // Create a new VarItem with the variable's name and type
             VarItem newVarItem = new VarItem(assignStatement.getAssignedId());
-            // TODO:maybe new type for a variable
+            // Store the variable type in the symbol table
             try {
                 SymbolTable.top.put(newVarItem);
-            }catch (ItemAlreadyExists ignored){}
+            } catch (ItemAlreadyExists ignored) {
+                // Handle the case where the variable already exists in the symbol table
+            }
         }
         return new NoType();
     }
@@ -229,6 +235,21 @@ public class TypeChecker extends Visitor<Type> {
             typeErrors.add(new IsNotAppendable(appendExpression.getLine()));
             return new NoType();
         }
+        if(appendeeType instanceof StringType){
+            for(var exp : appendExpression.getAppendeds() )
+                if(!(exp.accept(this) instanceof StringType)){
+                    typeErrors.add(new AppendTypesMisMatch(appendExpression.getLine()));
+                    return new NoType();
+                }
+        }
+        if(appendeeType instanceof ListType){
+            var type2 = ((ListType) appendeeType).getType();
+            for(var exp : appendExpression.getAppendeds() )
+                if(!(exp.accept(this).sameType(type2))){
+                    typeErrors.add(new AppendTypesMisMatch(appendExpression.getLine()));
+                    return new NoType();
+                }
+        }
         return appendeeType;
     }
     @Override
@@ -253,11 +274,22 @@ public class TypeChecker extends Visitor<Type> {
     @Override
     public Type visit(ChopStatement chopStatement){
         Expression arg = chopStatement.getChopExpression();
-        Type argType = arg.accept(this);
-        if (!(argType instanceof StringType)) {
-            typeErrors.add(new ChopArgumentTypeMisMatch(chopStatement.getLine()));
-            return new NoType();
+        Type argType;
+
+        if (arg instanceof Identifier) {
+            // If the argument is a variable, get its type from the symbol table
+            String varName = ((Identifier) arg).getName();
+            //argType = getVariableType(varName);
+        } else {
+            // Otherwise, type check the expression directly
+            argType = arg.accept(this);
         }
+
+
+        //if (!(argType instanceof StringType)) {
+        //    typeErrors.add(new ChopArgumentTypeMisMatch(chopStatement.getLine()));
+        //    return new NoType();
+        //}
         return new StringType();
     }
 
@@ -288,7 +320,9 @@ public class TypeChecker extends Visitor<Type> {
         if(rangeType.equals(RangeType.LIST)){
             // TODO --> mind that the lists are declared explicitly in the grammar in this node, so handle the errors
         }
-
+        if(rangeType.equals(RangeType.DOUBLE_DOT)){
+            // TODO --> mind that the lists are declared explicitly in the grammar in this node, so handle the errors
+        }
         return new NoType();
     }
 }
