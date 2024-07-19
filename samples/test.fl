@@ -1,4 +1,7 @@
 def main()
     a = "5";
     chop(a);
+    for i in (a..20)
+        puts(i);
+    end
 end

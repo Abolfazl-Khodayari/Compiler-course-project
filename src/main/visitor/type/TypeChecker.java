@@ -284,7 +284,30 @@ public class TypeChecker extends Visitor<Type> {
         if(rangeType.equals(RangeType.LIST)){
             // TODO --> mind that the lists are declared explicitly in the grammar in this node, so handle the errors
         }
+        if(rangeType.equals(RangeType.IDENTIFIER)){
+            for(Expression expr1: rangeExpression.getRangeExpressions()) {
+                var expr2 = expr1.accept(this);
 
+                System.err.println("Error: " + expr2.toString());
+                if(!(expr2 instanceof ListType)){
+                    //typeErrors.add(new IsNotIterable(expr1.getLine()));
+                    return new NoType();
+                }
+                if(!((expr1.accept(this)) instanceof ListType)){
+                    //typeErrors.add(new IsNotIterable(expr1.getLine()));
+                    return new NoType();
+                }
+            }
+
+        }
+        if(rangeType.equals(RangeType.DOUBLE_DOT)){
+            // TODO --> mind that the lists are declared explicitly in the grammar in this node, so handle the errors
+            var typefirst = rangeExpression.getRangeExpressions().getFirst().accept(this);
+            var typesecond = rangeExpression.getRangeExpressions().getLast().accept(this);
+            if(!(typefirst instanceof IntType && typesecond instanceof IntType)){
+                typeErrors.add(new RangeValuesMisMatch(rangeExpression.getLine()));
+            }
+        }
         return new NoType();
     }
 }
