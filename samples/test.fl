@@ -1,4 +1,6 @@
 def main()
-    a = "5" + 5;
-    10 + "54";
+    a = [5,54,69];
+    for i in a
+        puts(i);
+    end
 end

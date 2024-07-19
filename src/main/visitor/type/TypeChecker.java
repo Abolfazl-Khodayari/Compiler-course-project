@@ -103,6 +103,7 @@ public class TypeChecker extends Visitor<Type> {
                 return new NoType();
             }
             //TODO:index of access list must be int
+            return accessedType;
         }
         return null;
     }
@@ -160,6 +161,8 @@ public class TypeChecker extends Visitor<Type> {
         else{
             VarItem newVarItem = new VarItem(assignStatement.getAssignedId());
             Type exprType = assignStatement.getAssignExpression().accept(this);
+            //assignStatement.ass
+            //assignStatement.getAccessListExpression().accept(this);
             newVarItem.setType(exprType);
             // TODO:maybe new type for a variable
             try {
@@ -213,8 +216,11 @@ public class TypeChecker extends Visitor<Type> {
     }
     @Override
     public Type visit(ListValue listValue){
+        var a = listValue.getElements().getFirst().accept(this);
+        Type atype = a;
+
         // TODO:visit listValue
-        return null;
+        return atype;
     }
     @Override
     public Type visit(FunctionPointer functionPointer){
@@ -318,32 +324,23 @@ public class TypeChecker extends Visitor<Type> {
     @Override
     public Type visit(RangeExpression rangeExpression){
         RangeType rangeType = rangeExpression.getRangeType();
-
-        if(rangeType.equals(RangeType.LIST)){
-            // TODO --> mind that the lists are declared explicitly in the grammar in this node, so handle the errors
-        }
         if(rangeType.equals(RangeType.IDENTIFIER)){
             for(Expression expr1: rangeExpression.getRangeExpressions()) {
-                var expr2 = expr1.accept(this);
-
-                System.err.println("Error: " + expr2.toString());
-                if(!(expr2 instanceof ListType)){
-                    //typeErrors.add(new IsNotIterable(expr1.getLine()));
-                    return new NoType();
-                }
-                if(!((expr1.accept(this)) instanceof ListType)){
-                    //typeErrors.add(new IsNotIterable(expr1.getLine()));
-                    return new NoType();
+                Type argType = expr1.accept(this);
+                if(argType != null){
+                    if(!(argType instanceof ListType)){
+                        typeErrors.add(new IsNotIterable(expr1.getLine()));
+                        return new NoType();
+                    }
                 }
             }
-
         }
         if(rangeType.equals(RangeType.DOUBLE_DOT)){
-            // TODO --> mind that the lists are declared explicitly in the grammar in this node, so handle the errors
             var typefirst = rangeExpression.getRangeExpressions().getFirst().accept(this);
             var typesecond = rangeExpression.getRangeExpressions().getLast().accept(this);
             if(!(typefirst instanceof IntType && typesecond instanceof IntType)){
                 typeErrors.add(new RangeValuesMisMatch(rangeExpression.getLine()));
+                return new NoType();
             }
         }
         return new NoType();
