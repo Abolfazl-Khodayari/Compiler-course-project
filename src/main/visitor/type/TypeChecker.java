@@ -247,12 +247,35 @@ public class TypeChecker extends Visitor<Type> {
     @Override
     public Type visit(BinaryExpression binaryExpression){
         //TODO:visit binary expression
-        return null;
+        var type1 = binaryExpression.getFirstOperand().accept(this);
+        var type2 = binaryExpression.getSecondOperand().accept(this);
+        if(!(type1.sameType(type2))){
+            typeErrors.add(new NonSameOperands(binaryExpression.getLine(), binaryExpression.getOperator()));
+            return new NoType();
+        }
+        if(!(type1 instanceof IntType || type1 instanceof FloatType)){
+            typeErrors.add(new UnsupportedOperandType(binaryExpression.getLine(), binaryExpression.getOperator().toString()));
+            return new NoType();
+        }
+        return type1;
     }
     @Override
     public Type visit(UnaryExpression unaryExpression){
         //TODO:visit unaryExpression
-        return null;
+        var operantype1 = unaryExpression.getExpression().accept(this);
+        var operator1 = unaryExpression.getOperator().toString();
+        if(operator1 == UnaryOperator.NOT.toString() && operantype1 instanceof BoolType){
+            return new BoolType();
+        }
+        if( operator1 == UnaryOperator.NOT.toString() ){
+            typeErrors.add(new UnsupportedOperandType(unaryExpression.getLine(), operator1));
+            return new NoType();
+        }
+        if(!(operantype1 instanceof IntType || operantype1 instanceof FloatType)){
+            typeErrors.add(new UnsupportedOperandType(unaryExpression.getLine(), operator1));
+            return new NoType();
+        }
+        return operantype1;
     }
     @Override
     public Type visit(ChompStatement chompStatement){
